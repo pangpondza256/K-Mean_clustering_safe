@@ -5,38 +5,38 @@ from sklearn.decomposition import PCA
 import joblib
 
 # Page title
-st.title("🔍 K-Means Clustering App (Iris Dataset)")
+st.title("🔍 K-Means Clustering App with Iris Dataset by Thanakorn Risub")
 
-# Load the KMeans model
+# Load model
 with open("kmeans_model.pkl", "rb") as file:
     kmeans = joblib.load(file)
 
-# Load Iris dataset
+# Load dataset
 from sklearn.datasets import load_iris
 iris = load_iris()
 X_full = pd.DataFrame(iris.data, columns=iris.feature_names)
 
-# Match features used during training
-feature_names_model = getattr(kmeans, "feature_names_in_", None)
+# ====== ดึงจำนวนฟีเจอร์ที่โมเดลต้องการ ======
+n_features_model = getattr(kmeans, "n_features_in_", None)
 
-if feature_names_model is not None:
-    # Select only the features the model was trained on
-    X = X_full[feature_names_model]
+if n_features_model is not None and n_features_model <= X_full.shape[1]:
+    # เลือกเฉพาะคอลัมน์ที่จำเป็น
+    X = X_full.iloc[:, :n_features_model]
 else:
-    st.error("❌ Error: The model does not contain feature names. Please retrain using a DataFrame.")
+    st.error("❌ Error: จำนวนฟีเจอร์ของโมเดลมากกว่าข้อมูลที่มีอยู่!")
     st.stop()
 
-# Sidebar configuration
-st.sidebar.header("Clustering Settings")
-k = st.sidebar.slider("Number of clusters (k)", 2, 10, kmeans.n_clusters)
+# Sidebar for number of clusters
+st.sidebar.header("Configure Clustering")
+k = st.sidebar.slider("Select number of clusters (k)", 2, 10, kmeans.n_clusters)
 
-# Refit if user selects different k
+# Re-cluster if user changes k
 if k != kmeans.n_clusters:
     from sklearn.cluster import KMeans
     kmeans = KMeans(n_clusters=k, random_state=42)
     kmeans.fit(X)
 
-# Predict cluster labels
+# Predict clusters
 labels = kmeans.predict(X)
 
 # PCA for 2D visualization
@@ -55,6 +55,6 @@ ax.set_xlabel("PCA1")
 ax.set_ylabel("PCA2")
 ax.legend()
 
-# Display plot and preview of data
+# Show plot and data
 st.pyplot(fig)
 st.dataframe(reduced_df.head(10))
