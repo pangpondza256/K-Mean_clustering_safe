@@ -5,28 +5,38 @@ from sklearn.decomposition import PCA
 import joblib
 
 # Page title
-st.title("🔍 K-Means Clustering App with Iris Dataset by Thanakorn Risub")
+st.title("🔍 K-Means Clustering App (Iris Dataset)")
 
-# Load model from uploaded file
+# Load the KMeans model
 with open("kmeans_model.pkl", "rb") as file:
     kmeans = joblib.load(file)
 
-# Load dataset
+# Load Iris dataset
 from sklearn.datasets import load_iris
 iris = load_iris()
-X = pd.DataFrame(iris.data, columns=iris.feature_names)
+X_full = pd.DataFrame(iris.data, columns=iris.feature_names)
 
-# Sidebar for number of clusters (force to match loaded model)
-st.sidebar.header("Configure Clustering")
-k = st.sidebar.slider("Select number of clusters (k)", 2, 10, kmeans.n_clusters)
+# Match features used during training
+feature_names_model = getattr(kmeans, "feature_names_in_", None)
 
-# Re-cluster if user changes k (optional fallback)
+if feature_names_model is not None:
+    # Select only the features the model was trained on
+    X = X_full[feature_names_model]
+else:
+    st.error("❌ Error: The model does not contain feature names. Please retrain using a DataFrame.")
+    st.stop()
+
+# Sidebar configuration
+st.sidebar.header("Clustering Settings")
+k = st.sidebar.slider("Number of clusters (k)", 2, 10, kmeans.n_clusters)
+
+# Refit if user selects different k
 if k != kmeans.n_clusters:
     from sklearn.cluster import KMeans
     kmeans = KMeans(n_clusters=k, random_state=42)
     kmeans.fit(X)
 
-# Predict clusters
+# Predict cluster labels
 labels = kmeans.predict(X)
 
 # PCA for 2D visualization
@@ -45,6 +55,6 @@ ax.set_xlabel("PCA1")
 ax.set_ylabel("PCA2")
 ax.legend()
 
-# Show plot and data
+# Display plot and preview of data
 st.pyplot(fig)
 st.dataframe(reduced_df.head(10))
